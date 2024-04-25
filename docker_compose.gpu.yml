@@ -1,0 +1,42 @@
+services:
+  web_gpu:
+    build:
+      context: .
+      dockerfile: Dockerfiles/fastapi_service_gpu/Dockerfile
+      target: development
+    command: [ "python"  , "-m", "fastapi_service" ]
+    environment:
+      DEBUG: 'True'
+      SETTINGS_LOG_FILE: 'True'
+    volumes:
+      - "./fastapi_service:/src/fastapi_service"
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD" ,"nc", "-vz", "-w1", "localhost", "8000" ]
+      interval: 5s
+      timeout: 20s
+      retries: 100
+    restart: on-failure
+
+  redis:
+    image: redis:latest
+    expose:
+      - 6379
+    volumes:
+      - "redis_data:/bitnami/redis/data"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 30s
+      retries: 50
+    restart: on-failure
+
+volumes:
+  redis_data:
+    driver: local
